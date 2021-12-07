@@ -14,7 +14,7 @@ def save_audio_to_wav(audio: sr.AudioData):
         f.write(audio.get_wav_data())
 
 
-def recognize_speech_from_mic(recognizer: sr.Recognizer, microphone: sr.Microphone) -> Dict[str, Union[str, bool]]:
+def recognize_speech_from_mic(recognizer: sr.Recognizer, microphone: sr.Microphone) -> Dict[str, Union[str, bool, None]]:
     """Transcribe speech from recorded from `microphone`.
 
     Returns a dictionary with three keys:
@@ -45,7 +45,7 @@ def recognize_speech_from_mic(recognizer: sr.Recognizer, microphone: sr.Micropho
             return {"timeout": True}
         # set up the response object
     save_audio_to_wav(audio)
-    response: Dict[str, Union[str, bool]] = {}
+    response: Dict[str, Union[str, bool, None]] = {}
     response["error"] = None
     # try recognizing the speech in the recording
     # if a RequestError or UnknownValueError exception is caught,
