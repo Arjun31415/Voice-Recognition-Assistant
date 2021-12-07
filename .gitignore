@@ -7,3 +7,4 @@ Python-*/
 # build directory for executable files
 build/
 *.spec
+*.tgz
