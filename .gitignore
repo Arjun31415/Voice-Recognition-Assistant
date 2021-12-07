@@ -2,5 +2,7 @@
 .vscode/
 __pycache__/
 .mypy_cache/
-Python-3.10.0/
+# locally building python directory
+Python-*/
+# build directory for executable files
 build/
