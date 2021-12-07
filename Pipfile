@@ -56,6 +56,7 @@ transformers = "*"
 [dev-packages]
 mypy = "*"
 mypy-extensions = "*"
+pyinstaller = "*"
 
 [requires]
 python_version = "3.7"
