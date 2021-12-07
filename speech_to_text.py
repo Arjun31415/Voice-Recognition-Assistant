@@ -4,11 +4,13 @@ import numpy as np
 import soundfile as sf
 from scipy.io import wavfile
 from IPython.display import Audio
-from transformers import Wav2Vec2ForCTC, Wav2Vec2Tokenizer
-tokenizer = Wav2Vec2Tokenizer.from_pretrained("facebook/wav2vec2-base-960h")
+from transformers import Wav2Vec2ForCTC, Wav2Vec2Tokenizer, Wav2Vec2CTCTokenizer, Wav2Vec2Processor
+tokenizer = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
 model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
-file_name = 'my-audio.wav'
+
+file_name = '2021-12-07-22-37-48.wav'
 data = wavfile.read(file_name)
+
 framerate = data[0]
 sounddata = data[1]
 time = np.arange(0, len(sounddata))/framerate

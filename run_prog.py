@@ -2,6 +2,16 @@ import os
 from typing import Dict, Optional, Type, Union
 import speech_recognition as sr
 import pprint
+from datetime import datetime
+
+
+def save_audio_to_wav(audio: sr.AudioData):
+
+    filename: str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    filename += ".wav"
+    print(filename)
+    with open(filename, "wb") as f:
+        f.write(audio.get_wav_data())
 
 
 def recognize_speech_from_mic(recognizer: sr.Recognizer, microphone: sr.Microphone) -> Dict[str, Union[str, bool]]:
@@ -27,13 +37,14 @@ def recognize_speech_from_mic(recognizer: sr.Recognizer, microphone: sr.Micropho
     # from the microphone
     with microphone as source:
         recognizer.adjust_for_ambient_noise(source)
-        recognizer.energy_threshold = 4103.52773393966
+        recognizer.energy_threshold = 4400
         recognizer.dynamic_energy_threshold = True
         try:
             audio = recognizer.listen(source, timeout=5)
         except sr.WaitTimeoutError as e:
             return {"timeout": True}
         # set up the response object
+    save_audio_to_wav(audio)
     response: Dict[str, Union[str, bool]] = {}
     response["error"] = None
     # try recognizing the speech in the recording
