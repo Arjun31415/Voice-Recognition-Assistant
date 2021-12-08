@@ -5,15 +5,19 @@ import asyncio
 import pyaudio
 import websockets
 import wave
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 SAMPLE_RATE = 16000
 FRAMES_PER_BUFFER = 3200
-CHANNELS = 2
+CHANNELS = 1
 FORMAT = pyaudio.paInt16
 
 # API_KEY = '<your AssemblyAI Key goes here>'
 # ASSEMBLYAI_ENDPOINT = f'wss://api.assemblyai.com/v2/realtime/ws?sample_rate={SAMPLE_RATE}'
-ASSEMBLYAI_ENDPOINT = "wss://fda5-115-97-254-132.ngrok.io/media"
+ASSEMBLYAI_ENDPOINT = "wss://27a9-115-97-254-132.ngrok.io/media"
 
 p = pyaudio.PyAudio()
 audio_stream = p.open(
@@ -26,20 +30,35 @@ audio_stream = p.open(
 
 
 def save_audio_to_wav(audio, p, append,  file):
-    frames = [audio]
-    if not append:
-        filename: str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        filename += ".wav"
-    else:
-        filename = file
-    print(filename)
-    with wave.open(filename, "w") as f:
-        f.setnchannels(CHANNELS)
-        f.setsampwidth(p.get_sample_size(FORMAT))
-        f.setframerate(SAMPLE_RATE)
-        f.writeframes(b''.join(frames))
-    file = filename
-    return filename
+    # frames = [audio]
+    try:
+        frames = []
+        if not append:
+            filename: str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+            filename += ".wav"
+        else:
+            filename = file
+        # print(filename)
+
+        # get the audio present in the file
+        if append:
+            with wave.open(filename, "rb") as f:
+                n = f.getnframes()
+                frame = f.readframes(n)
+            # append it to frames
+            frames.append(frame)
+        # add the current audio
+        frames.append(audio)
+        with wave.open(filename, "wb") as f:
+            f.setnchannels(CHANNELS)
+            f.setsampwidth(p.get_sample_size(FORMAT))
+            f.setframerate(SAMPLE_RATE)
+            f.writeframes(b''.join(frames))
+        file = filename
+        return filename
+    except KeyboardInterrupt:
+        logger.info("\nInterrupted by user\n\n\n")
+        f.close()
 
 
 async def speech_to_text():
@@ -56,15 +75,15 @@ async def speech_to_text():
     ) as ws_connection:
         await asyncio.sleep(0.5)
         temp = await ws_connection.recv()
-        print(temp)
-        print('Websocket connection initialised')
+        logger.info("temp: %s", temp)
+        logger.info('Websocket connection initialised')
 
         async def send_data():
             nonlocal append, file
             """
             Asynchronous function used for sending data
             """
-            print("\n\nSending Data\n\n")
+            logger.info("Sending Data")
             while True:
                 # try:
                 data = audio_stream.read(
@@ -72,19 +91,25 @@ async def speech_to_text():
 
                 file = save_audio_to_wav(data, p, append, file)
                 append = True
-                print(file)
+                logger.info(f"file name to be saved: {file} ")
                 data = base64.b64encode(data).decode('utf-8')
                 await ws_connection.send(json.dumps(
                     {
                         'event': "media",
-                        'media': {"payload": str(data)}
+                        'media': {
+                            "payload": str(data),
+                            "channels": CHANNELS,
+                            "sample_rate": SAMPLE_RATE,
+                            "frames": FRAMES_PER_BUFFER,
+                            "sample_size": p.get_sample_size(FORMAT)
+                        }
                     }
                 ))
                 # except Exception as e:
                 # print(e)
                 # print(f'Something went wrong. Error code was {e.code}')
                 # break
-                await asyncio.sleep(0.5)
+                # await asyncio.sleep(0.5)
             return True
 
         async def receive_data():
@@ -96,7 +121,8 @@ async def speech_to_text():
                     received_msg = await ws_connection.recv()
                     print(json.loads(received_msg)['text'])
                 except Exception as e:
-                    print(f'Something went wrong. Error code was {e.code}')
+                    logger.error(
+                        f'Something went wrong. Error code was {e.code}')
                     break
 
         data_sent, data_received = await asyncio.gather(send_data(), receive_data())
