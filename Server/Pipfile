@@ -19,6 +19,12 @@ python-engineio = "==3.13.2"
 python-socketio = "==4.6.0"
 six = "*"
 pyaudio = "*"
+torch = "*"
+librosa = "*"
+numpy = "*"
+scipy = "*"
+ipython = "*"
+transformers = "*"
 
 [dev-packages]
 autopep8 = "*"
