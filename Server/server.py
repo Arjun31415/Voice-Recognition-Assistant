@@ -1,61 +1,54 @@
-import base64
+import zmq.green as zmq
 import json
-import logging
-
-from flask import Flask
+import gevent
 from flask_sockets import Sockets
+from flask import Flask, render_template
+import logging
+from gevent import monkey
+
+monkey.patch_all()
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 sockets = Sockets(app)
+context = zmq.Context()
 
-HTTP_SERVER_PORT = 5000
+ZMQ_LISTENING_PORT = 12000
 
 
-@sockets.route('/media')
-def echo(ws):
-    app.logger.info("Connection accepted")
-    # A lot of messages will be sent rapidly. We'll stop showing after the first one.
-    has_seen_media = False
-    message_count = 0
-    while not ws.closed:
-        message = ws.receive()
-        if message is None:
-            app.logger.info("No message received...")
-            continue
+@app.route('/')
+def index():
+    logger.info('Rendering index page')
+    return render_template('index.html')
 
-        # Messages are a JSON encoded string
-        data = json.loads(message)
 
-        # Using the event type you can determine what type of message you are receiving
-        if data['event'] == "connected":
-            app.logger.info("Connected Message received: {}".format(message))
-        if data['event'] == "start":
-            app.logger.info("Start Message received: {}".format(message))
-        if data['event'] == "media":
-            if not has_seen_media:
-                app.logger.info("Media message: {}".format(message))
-                payload = data['media']['payload']
-                app.logger.info("Payload is: {}".format(payload))
-                chunk = base64.b64decode(payload)
-                app.logger.info("That's {} bytes".format(len(chunk)))
-                app.logger.info(
-                    "Additional media messages from WebSocket are being suppressed....")
-                has_seen_media = True
-        if data['event'] == "closed":
-            app.logger.info("Closed Message received: {}".format(message))
-            break
-        message_count += 1
-
-    app.logger.info(
-        "Connection closed. Received a total of {} messages".format(message_count))
+@sockets.route('/zeromq')
+def send_data(ws):
+    logger.info('Got a websocket connection, sending up data from zmq')
+    socket = context.socket(zmq.SUB)
+    socket.connect('tcp://localhost:{PORT}'.format(PORT=ZMQ_LISTENING_PORT))
+    socket.setsockopt_string(zmq.SUBSCRIBE, "")
+    poller = zmq.Poller()
+    poller.register(socket, zmq.POLLIN)
+    gevent.sleep()
+    received = 0
+    while True:
+        received += 1
+        # socks = dict(poller.poll())
+        # if socket in socks and socks[socket] == zmq.POLLIN:
+        data = socket.recv_json()
+        logger.info(str(received)+str(data))
+        ws.send(json.dumps(data))
+        gevent.sleep()
 
 
 if __name__ == '__main__':
-    app.logger.setLevel(logging.DEBUG)
+    logger.info('Launching web server')
     from gevent import pywsgi
     from geventwebsocket.handler import WebSocketHandler
-
     server = pywsgi.WSGIServer(
-        ('', HTTP_SERVER_PORT), app, handler_class=WebSocketHandler)
-    print("Server listening on: http://localhost:" + str(HTTP_SERVER_PORT))
+        ('', 25000), app, handler_class=WebSocketHandler)
+    logger.info('Starting serving')
     server.serve_forever()
