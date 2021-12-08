@@ -1,9 +1,9 @@
-.venv/
-.vscode/
-__pycache__/
-.mypy_cache/
+.*venv/
+.*vscode/
+*__pycache__/
+*.mypy_cache/
 # locally building python directory
-Python-*/
+*Python-*/
 # build directory for executable files
 build/
 *.spec
