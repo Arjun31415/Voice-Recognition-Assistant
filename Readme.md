@@ -2,7 +2,8 @@
 
 ##### Arch Linux-
 
-the speech-to-text module requires python version >=3.6 and <3.8
+the speech-to-text module requires python version >=3.6 and < 3.8
+Requires `espeak` package on linux
 
 Run the following to build python from source and also install shared libraries for `pyinstaller`
 Note: Assuming python lib paths are present in `/usr/local/lib`, if not find where it is present in your system and specify it in `LDFLAGS`
