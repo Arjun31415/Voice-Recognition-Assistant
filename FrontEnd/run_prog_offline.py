@@ -67,7 +67,7 @@ def recognize_speech_from_mic(recognizer: sr.Recognizer, microphone: sr.Micropho
 
 def main():
     recognizer = sr.Recognizer()
-    mic = sr.Microphone(device_index=6)
+    mic = sr.Microphone(device_index=8)
     guess = recognize_speech_from_mic(recognizer, mic)
     pprint.pprint(guess)
 
@@ -94,5 +94,7 @@ def main():
 
 
 if __name__ == "__main__":
+    print(sr.Microphone.list_microphone_names())
+
     main()
     print("\n\n\Finished\n\n\n")

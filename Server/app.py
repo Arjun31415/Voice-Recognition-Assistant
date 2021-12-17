@@ -46,8 +46,6 @@ def save_audio_to_wav(audio_stream, file):
             except KeyboardInterrupt:
                 f.close()
         file = filename
-        app.logger.info("TRYING TRANSCRIPTION\n")
-
         return filename
     except KeyboardInterrupt:
         app.logger.info("\nInterrupted by user\n\n\n")
@@ -55,7 +53,7 @@ def save_audio_to_wav(audio_stream, file):
 
 @sockets.route('/media')
 def echo(ws):
-    global CHANNELS, SAMPLE_RATE, FRAMES_PER_BUFFER, SAMPLE_SIZE
+    global CHANNELS, SAMPLE_RATE, FRAMES_PER_BUFFER, SAMPLE_SIZE, audio_stream
     app.logger.info("Connection accepted")
     # A lot of messages will be sent rapidly. We'll stop showing after the first one.
     has_seen_media = False
@@ -114,6 +112,7 @@ def echo(ws):
 
     app.logger.info(
         "Connection closed. Received a total of {} messages".format(message_count))
+    audio_stream = []
 
 
 async def main():

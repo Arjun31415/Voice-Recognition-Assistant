@@ -6,6 +6,12 @@ import pyaudio
 import websockets
 import wave
 import logging
+import speech_recognition as sr
+import io
+from scipy.io.wavfile import read, write
+
+r = sr.Recognizer()
+mic = sr.Microphone(device_index=8)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,7 +23,7 @@ FORMAT = pyaudio.paInt16
 
 # API_KEY = '<your AssemblyAI Key goes here>'
 # ASSEMBLYAI_ENDPOINT = f'wss://api.assemblyai.com/v2/realtime/ws?sample_rate={SAMPLE_RATE}'
-ASSEMBLYAI_ENDPOINT = "wss://8786-60-243-101-196.ngrok.io/media"
+ASSEMBLYAI_ENDPOINT = "wss://52e0-115-97-238-112.ngrok.io/media"
 
 p = pyaudio.PyAudio()
 audio_stream = p.open(
@@ -84,14 +90,27 @@ async def speech_to_text():
             Asynchronous function used for sending data
             """
             logger.info("Sending Data")
-            while True:
-                # try:
-                data = audio_stream.read(
-                    FRAMES_PER_BUFFER, exception_on_overflow=False)
+            # while True:
 
-                file = save_audio_to_wav(data, p, append, file)
-                append = True
-                logger.info(f"file name to be saved: {file} ")
+            with mic as source:
+                # try:
+                r.adjust_for_ambient_noise(source)
+                r.energy_threshold = 4400
+                r.dynamic_energy_threshold = True
+                logger.info("Listening")
+                try:
+                    data = r.listen(source, phrase_time_limit=2, timeout=3)
+                    data = data.get_wav_data()
+
+                    print(read(io.BytesIO(data)))
+                    rate, data = read(io.BytesIO(data))
+                except sr.WaitTimeoutError as e:
+                    return {"timeout": True}
+                # daconverta = audio_stream.read(FRAMES_PER_BUFFER)
+
+                # file = save_audio_to_wav(data, p, append, file)
+                # append = True
+                # logger.info(f"file name to be saved: {file} ")
                 data = base64.b64encode(data).decode('utf-8')
                 await ws_connection.send(json.dumps(
                     {
@@ -99,20 +118,21 @@ async def speech_to_text():
                         'media': {
                             "payload": str(data),
                             "channels": CHANNELS,
-                            "sample_rate": SAMPLE_RATE,
+                            "sample_rate": rate,
                             "frames": FRAMES_PER_BUFFER,
                             "sample_size": p.get_sample_size(FORMAT)
                         }
                     }
                 ))
-                temp = await ws_connection.recv()
-                print(temp)
+                # temp = ws_connection.recv()
+                # print(temp)
 
                 # except Exception as e:
                 # print(e)
                 # print(f'Something went wrong. Error code was {e.code}')
                 # break
                 # await asyncio.sleep(0.5)
+            logger.info("recording over\n")
             return True
 
         async def receive_data():
