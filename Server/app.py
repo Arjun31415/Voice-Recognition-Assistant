@@ -63,10 +63,10 @@ def echo(ws):
     ws.send("Hello")
     while not ws.closed:
         message = ws.receive()
-        app.logger.info(f"Message received: {message[:10]}")
         if message is None:
             app.logger.info("No message received...")
             continue
+        app.logger.info(f"Message received: {message[:10]}")
 
         # Messages are a JSON encoded string
         data = json.loads(message)

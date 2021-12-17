@@ -37,11 +37,12 @@ def recognize_speech_from_mic(recognizer: sr.Recognizer, microphone: sr.Micropho
     # from the microphone
     with microphone as source:
         recognizer.adjust_for_ambient_noise(source)
-        recognizer.energy_threshold = 4400
+        recognizer.energy_threshold = 4900
         recognizer.dynamic_energy_threshold = True
-        print("\n\nSpeak Now!\n\n")
         try:
-            audio = recognizer.listen(source, timeout=5)
+            print("\n\nSpeak Now!\n\n")
+
+            audio = recognizer.listen(source, timeout=1)
         except sr.WaitTimeoutError as e:
             return {"timeout": True}
         # set up the response object
