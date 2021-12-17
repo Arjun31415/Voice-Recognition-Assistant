@@ -17,7 +17,7 @@ FORMAT = pyaudio.paInt16
 
 # API_KEY = '<your AssemblyAI Key goes here>'
 # ASSEMBLYAI_ENDPOINT = f'wss://api.assemblyai.com/v2/realtime/ws?sample_rate={SAMPLE_RATE}'
-ASSEMBLYAI_ENDPOINT = "wss://27a9-115-97-254-132.ngrok.io/media"
+ASSEMBLYAI_ENDPOINT = "wss://8786-60-243-101-196.ngrok.io/media"
 
 p = pyaudio.PyAudio()
 audio_stream = p.open(
@@ -105,6 +105,9 @@ async def speech_to_text():
                         }
                     }
                 ))
+                temp = await ws_connection.recv()
+                print(temp)
+
                 # except Exception as e:
                 # print(e)
                 # print(f'Something went wrong. Error code was {e.code}')
@@ -121,8 +124,8 @@ async def speech_to_text():
                     received_msg = await ws_connection.recv()
                     print(json.loads(received_msg)['text'])
                 except Exception as e:
-                    logger.error(
-                        f'Something went wrong. Error code was {e.code}')
+                    logger.error(f'Something went wrong.\n{e}')
+
                     break
 
         data_sent, data_received = await asyncio.gather(send_data(), receive_data())

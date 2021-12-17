@@ -4,15 +4,16 @@ import json
 import logging
 import asyncio
 from datetime import datetime
+import time
 import wave
 from flask import Flask
 from flask_sockets import Sockets
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
-
+from Speech_Recognition import try_transcription
 app = Flask(__name__)
 sockets = Sockets(app)
-
+STARTED_TIME: int
 HTTP_SERVER_PORT = 5000
 audio_stream = []
 CHANNELS: int
@@ -22,10 +23,17 @@ FRAMES_PER_BUFFER: int
 SAMPLE_SIZE: int
 
 
+def transcription(filename):
+    if((int(time.time())-STARTED_TIME) % 5 == 0):
+        text = try_transcription(filename, SAMPLE_RATE)
+        app.logger.info("TRANSCRIPTION: %s\n" % text)
+        return text
+    return None
+
+
 def save_audio_to_wav(audio_stream, file):
     # frames = [audio]
     try:
-        frames = []
         filename = file
         # print(filename)
 
@@ -38,6 +46,8 @@ def save_audio_to_wav(audio_stream, file):
             except KeyboardInterrupt:
                 f.close()
         file = filename
+        app.logger.info("TRYING TRANSCRIPTION\n")
+
         return filename
     except KeyboardInterrupt:
         app.logger.info("\nInterrupted by user\n\n\n")
@@ -61,6 +71,8 @@ def echo(ws):
         # Messages are a JSON encoded string
         data = json.loads(message)
         app.logger.info(f"data received")
+        global STARTED_TIME
+        STARTED_TIME = int(time.time())
         # Using the event type you can determine what type of message you are receiving
         if data['event'] == "connected":
             app.logger.info("Connected Message received: {}".format(message))
@@ -89,6 +101,11 @@ def echo(ws):
             chunk = base64.b64decode(payload)
             audio_stream.append(chunk)
             save_audio_to_wav(audio_stream, "temp.wav")
+            transcript = transcription("temp.wav")
+            if transcript is not None:
+                app.logger.info(f"Transcript: {transcript}")
+                # ws.send({"transcription": transcript})
+                ws.send(transcript)
 
         if data['event'] == "closed":
             app.logger.info("Closed Message received: {}".format(message))
