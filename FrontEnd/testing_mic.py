@@ -6,8 +6,8 @@ mic = sr.Microphone(device_index=6)
 r = sr.Recognizer()
 
 
-# print(mic.list_microphone_names())
-with sr.Microphone(device_index=6) as source:
+print(mic.list_microphone_names())
+with mic as source:
     r.adjust_for_ambient_noise(source)
     r.energy_threshold = 4103.52773393966
     r.dynamic_energy_threshold = True

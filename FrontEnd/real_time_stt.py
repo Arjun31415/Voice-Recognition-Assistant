@@ -1,3 +1,4 @@
+from asyncio import futures
 import json
 from datetime import datetime
 import base64
@@ -9,9 +10,9 @@ import logging
 import speech_recognition as sr
 import io
 from scipy.io.wavfile import read, write
-
+import time
 r = sr.Recognizer()
-mic = sr.Microphone(device_index=8)
+mic = sr.Microphone(device_index=6)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,16 +24,18 @@ FORMAT = pyaudio.paInt16
 
 # API_KEY = '<your AssemblyAI Key goes here>'
 # ASSEMBLYAI_ENDPOINT = f'wss://api.assemblyai.com/v2/realtime/ws?sample_rate={SAMPLE_RATE}'
-ASSEMBLYAI_ENDPOINT = "wss://52e0-115-97-238-112.ngrok.io/media"
+ASSEMBLYAI_ENDPOINT = "wss://2746-27-5-10-110.ngrok.io/media"
 
-p = pyaudio.PyAudio()
-audio_stream = p.open(
-    frames_per_buffer=FRAMES_PER_BUFFER,
-    rate=SAMPLE_RATE,
-    format=pyaudio.paInt16,
-    channels=CHANNELS,
-    input=True,
-)
+# p = pyaudio.PyAudio()
+# audio_stream = p.open(
+#     frames_per_buffer=FRAMES_PER_BUFFER,
+#     rate=SAMPLE_RATE,
+#     format=pyaudio.paInt16,
+#     channels=CHANNELS,
+#     input=True,
+# )
+# p.close(audio_stream)
+# print(f"Sample size: {p.get_sample_size(FORMAT)}")
 
 
 def save_audio_to_wav(audio, p, append,  file):
@@ -95,23 +98,25 @@ async def speech_to_text():
             with mic as source:
                 # try:
                 r.adjust_for_ambient_noise(source)
-                r.energy_threshold = 4400
+                r.energy_threshold = 4500
                 r.dynamic_energy_threshold = True
                 logger.info("Listening")
                 try:
-                    data = r.listen(source, phrase_time_limit=2, timeout=3)
-                    data = data.get_wav_data()
+                    data = r.listen(source, phrase_time_limit=5, timeout=10)
+                    logger.info(f"Transcription: {r.recognize_google(data)} ")
 
+                    data = data.get_wav_data()
                     print(read(io.BytesIO(data)))
                     rate, data = read(io.BytesIO(data))
                 except sr.WaitTimeoutError as e:
                     return {"timeout": True}
-                # daconverta = audio_stream.read(FRAMES_PER_BUFFER)
+                # data = audio_stream.read(FRAMES_PER_BUFFER)
 
                 # file = save_audio_to_wav(data, p, append, file)
                 # append = True
                 # logger.info(f"file name to be saved: {file} ")
                 data = base64.b64encode(data).decode('utf-8')
+                # print(f"Sample Size: { p.get_sample_size(FORMAT)}")
                 await ws_connection.send(json.dumps(
                     {
                         'event': "media",
@@ -120,7 +125,7 @@ async def speech_to_text():
                             "channels": CHANNELS,
                             "sample_rate": rate,
                             "frames": FRAMES_PER_BUFFER,
-                            "sample_size": p.get_sample_size(FORMAT)
+                            "sample_size": 2
                         }
                     }
                 ))
@@ -132,27 +137,67 @@ async def speech_to_text():
                 # print(f'Something went wrong. Error code was {e.code}')
                 # break
                 # await asyncio.sleep(0.5)
-            logger.info("recording over\n")
+
             return True
 
-        async def receive_data():
+        async def receive_data(start_time):
             """
             Asynchronous function used for receiving data
             """
+            logger.info(f"start_time: {start_time}")
+            prev_msg = None
+            received_msg = None
+
             while True:
+                # logger.info(f"elapsed: {int(time.time())-start_time }")
+                prev_msg = received_msg
+                received_msg = None
                 try:
                     received_msg = await ws_connection.recv()
-                    print(json.loads(received_msg)['text'])
+                    print(received_msg)
+                    return received_msg
+                    if(received_msg == "Finished"):
+                        return prev_msg
+                    # print(json.loads(received_msg)['text'])
+                except asyncio.CancelledError as e:
+                    return (received_msg if received_msg is not None else prev_msg)
                 except Exception as e:
                     logger.error(f'Something went wrong.\n{e}')
-
                     break
+            logger.info("recording over\n")
+            await ws_connection.send(json.dumps(
+                {
+                    'event': "closed",
+                }
+            ))
+            return received_msg
+        data_received = None
 
-        data_sent, data_received = await asyncio.gather(send_data(), receive_data())
+        try:
+            data_sent, data_received = await asyncio.gather(
+                send_data(),
+                asyncio.shield(
+                    asyncio.wait_for(
+                        receive_data(int(time.time())),
+                        20)
+                ),
+                return_exceptions=True
+            )
+            logger.info(f"data received: {data_received} ")
+        except futures.TimeoutError as e:
+            await ws_connection.send(json.dumps(
+                {
+                    'event': "closed",
+                }
+            ))
+            await ws_connection.close()
+        finally:
+            return data_received
 
 
 def main():
-    asyncio.run(speech_to_text())
+    transcript = asyncio.run(speech_to_text())
+    logger.info(f"Final Transcription: {transcript} ")
 
 
 if __name__ == '__main__':

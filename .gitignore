@@ -9,3 +9,4 @@ build/
 *.spec
 *.tgz
 *.wav
+Server/transcript.txt

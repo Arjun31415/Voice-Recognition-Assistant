@@ -1,4 +1,5 @@
 import os
+from time import sleep
 from typing import Dict, Optional, Type, Union
 import speech_recognition as sr
 import pprint
@@ -37,11 +38,10 @@ def recognize_speech_from_mic(recognizer: sr.Recognizer, microphone: sr.Micropho
     # from the microphone
     with microphone as source:
         recognizer.adjust_for_ambient_noise(source)
-        recognizer.energy_threshold = 4900
+        recognizer.energy_threshold = 13000
         recognizer.dynamic_energy_threshold = True
         try:
             print("\n\nSpeak Now!\n\n")
-
             audio = recognizer.listen(source, timeout=1)
         except sr.WaitTimeoutError as e:
             return {"timeout": True}
@@ -67,13 +67,14 @@ def recognize_speech_from_mic(recognizer: sr.Recognizer, microphone: sr.Micropho
 
 def main():
     recognizer = sr.Recognizer()
-    mic = sr.Microphone(device_index=8)
+    mic = sr.Microphone()
     guess = recognize_speech_from_mic(recognizer, mic)
     pprint.pprint(guess)
 
     if "timeout" in guess:
         print("Timed out")
-    if guess["error"]:
+        return 2
+    elif guess["error"]:
         print(f"{guess['error']}")
         return 1
     if("spotify" in guess["transcription"].lower()):

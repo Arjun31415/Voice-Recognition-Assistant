@@ -24,10 +24,10 @@ SAMPLE_SIZE: int
 
 
 def transcription(filename):
-    if((int(time.time())-STARTED_TIME) % 5 == 0):
-        text = try_transcription(filename, SAMPLE_RATE)
-        app.logger.info("TRANSCRIPTION: %s\n" % text)
-        return text
+    # if((int(time.time())-STARTED_TIME) % 2 == 0):
+    text = try_transcription(filename, SAMPLE_RATE)
+    app.logger.info("TRANSCRIPTION: %s\n" % text)
+    return text
     return None
 
 
@@ -61,16 +61,28 @@ def echo(ws):
     ws.send("Hello")
     while not ws.closed:
         message = ws.receive()
+        global STARTED_TIME
+        STARTED_TIME = int(time.time())
         if message is None:
+            # TODO: instead of continue do some transcript
             app.logger.info("No message received...")
-            continue
+            if not message_count:
+                continue
+            else:
+                if transcript is not None:
+                    app.logger.info(f"Transcript: {transcript}")
+                    app.logger.info(f"Sending Transcription\n")
+                    # ws.send({"transcription": transcript})
+                try:
+                    ws.send(transcript)
+                except Exception:
+                    continue
         app.logger.info(f"Message received: {message[:10]}")
 
         # Messages are a JSON encoded string
         data = json.loads(message)
         app.logger.info(f"data received")
-        global STARTED_TIME
-        STARTED_TIME = int(time.time())
+
         # Using the event type you can determine what type of message you are receiving
         if data['event'] == "connected":
             app.logger.info("Connected Message received: {}".format(message))
@@ -102,12 +114,19 @@ def echo(ws):
             transcript = transcription("temp.wav")
             if transcript is not None:
                 app.logger.info(f"Transcript: {transcript}")
+                app.logger.info(f"Sending Transcription\n")
                 # ws.send({"transcription": transcript})
                 ws.send(transcript)
 
         if data['event'] == "closed":
             app.logger.info("Closed Message received: {}".format(message))
             break
+        transcript = transcription("temp.wav")
+        if transcript is not None:
+            app.logger.info(f"Transcript: {transcript}")
+            app.logger.info(f"Sending Transcription\n")
+            # ws.send({"transcription": transcript})
+            ws.send(transcript)
         message_count += 1
 
     app.logger.info(

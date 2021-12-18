@@ -38,7 +38,7 @@ def try_transcription(filename, rate: int):
 print(getcwd())
 data_dir = pjoin(getcwd(), "")
 if("Server" not in data_dir):
-    data_dir = pjoin(getcwd(), "./Server")
+    data_dir = pjoin(getcwd(), "Server")
 
 file_name = pjoin(data_dir, 'temp.wav')
 data = wavfile.read(file_name)
