@@ -24,10 +24,10 @@ SAMPLE_SIZE: int
 
 
 def transcription(filename):
-    # if((int(time.time())-STARTED_TIME) % 2 == 0):
-    text = try_transcription(filename, SAMPLE_RATE)
-    app.logger.info("TRANSCRIPTION: %s\n" % text)
-    return text
+    if((int(time.time())-STARTED_TIME) % 5 == 0):
+        text = try_transcription(filename, SAMPLE_RATE)
+        app.logger.info("TRANSCRIPTION: %s\n" % text)
+        return text
     return None
 
 
@@ -35,7 +35,6 @@ def save_audio_to_wav(audio_stream, file):
     # frames = [audio]
     try:
         filename = file
-        # print(filename)
 
         with wave.open(filename, "wb") as f:
             try:
@@ -48,7 +47,7 @@ def save_audio_to_wav(audio_stream, file):
         file = filename
         return filename
     except KeyboardInterrupt:
-        app.logger.info("\nInterrupted by user\n\n\n")
+        app.logger.info("Interrupted by user\n\n\n")
 
 
 @sockets.route('/media')
@@ -59,24 +58,26 @@ def echo(ws):
     has_seen_media = False
     message_count = 0
     ws.send("Hello")
+
+    global STARTED_TIME
+    STARTED_TIME = int(time.time())
     while not ws.closed:
         message = ws.receive()
-        global STARTED_TIME
-        STARTED_TIME = int(time.time())
         if message is None:
             # TODO: instead of continue do some transcript
             app.logger.info("No message received...")
-            if not message_count:
-                continue
-            else:
-                if transcript is not None:
-                    app.logger.info(f"Transcript: {transcript}")
-                    app.logger.info(f"Sending Transcription\n")
-                    # ws.send({"transcription": transcript})
-                try:
-                    ws.send(transcript)
-                except Exception:
-                    continue
+            continue
+            # if not message_count:
+            #     continue
+            # else:
+            #     if transcript is not None:
+            #         app.logger.info(f"Transcript: {transcript}")
+            #         app.logger.info(f"Sending Transcription\n")
+            #         # ws.send({"transcription": transcript})
+            #     try:
+            #         ws.send(transcript)
+            #     except Exception:
+            #         continue
         app.logger.info(f"Message received: {message[:10]}")
 
         # Messages are a JSON encoded string

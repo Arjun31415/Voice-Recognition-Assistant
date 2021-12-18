@@ -7,12 +7,10 @@ import pyaudio
 import websockets
 import wave
 import logging
-import speech_recognition as sr
 import io
 from scipy.io.wavfile import read, write
 import time
-r = sr.Recognizer()
-mic = sr.Microphone(device_index=6)
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,18 +22,16 @@ FORMAT = pyaudio.paInt16
 
 # API_KEY = '<your AssemblyAI Key goes here>'
 # ASSEMBLYAI_ENDPOINT = f'wss://api.assemblyai.com/v2/realtime/ws?sample_rate={SAMPLE_RATE}'
-ASSEMBLYAI_ENDPOINT = "wss://2746-27-5-10-110.ngrok.io/media"
+ASSEMBLYAI_ENDPOINT = "wss://4533-27-5-10-110.ngrok.io/media"
 
-# p = pyaudio.PyAudio()
-# audio_stream = p.open(
-#     frames_per_buffer=FRAMES_PER_BUFFER,
-#     rate=SAMPLE_RATE,
-#     format=pyaudio.paInt16,
-#     channels=CHANNELS,
-#     input=True,
-# )
-# p.close(audio_stream)
-# print(f"Sample size: {p.get_sample_size(FORMAT)}")
+p = pyaudio.PyAudio()
+audio_stream = p.open(
+    frames_per_buffer=FRAMES_PER_BUFFER,
+    rate=SAMPLE_RATE,
+    format=pyaudio.paInt16,
+    channels=CHANNELS,
+    input=True,
+)
 
 
 def save_audio_to_wav(audio, p, append,  file):
@@ -95,35 +91,22 @@ async def speech_to_text():
             logger.info("Sending Data")
             # while True:
 
-            with mic as source:
-                # try:
-                r.adjust_for_ambient_noise(source)
-                r.energy_threshold = 4500
-                r.dynamic_energy_threshold = True
-                logger.info("Listening")
-                try:
-                    data = r.listen(source, phrase_time_limit=5, timeout=10)
-                    logger.info(f"Transcription: {r.recognize_google(data)} ")
+            start_time = int(time.time())
+            while int(time.time()) - start_time <= 5:
 
-                    data = data.get_wav_data()
-                    print(read(io.BytesIO(data)))
-                    rate, data = read(io.BytesIO(data))
-                except sr.WaitTimeoutError as e:
-                    return {"timeout": True}
-                # data = audio_stream.read(FRAMES_PER_BUFFER)
+                data = audio_stream.read(FRAMES_PER_BUFFER)
 
-                # file = save_audio_to_wav(data, p, append, file)
-                # append = True
-                # logger.info(f"file name to be saved: {file} ")
+                file = save_audio_to_wav(data, p, append, file)
+                append = True
+                logger.info(f"file name to be saved: {file} ")
                 data = base64.b64encode(data).decode('utf-8')
-                # print(f"Sample Size: { p.get_sample_size(FORMAT)}")
                 await ws_connection.send(json.dumps(
                     {
                         'event': "media",
                         'media': {
                             "payload": str(data),
                             "channels": CHANNELS,
-                            "sample_rate": rate,
+                            "sample_rate": SAMPLE_RATE,
                             "frames": FRAMES_PER_BUFFER,
                             "sample_size": 2
                         }
