@@ -1,19 +1,20 @@
-import pyaudio
+import asyncio
 import base64
-import noisereduce as nr
-
 import json
 import logging
-import asyncio
-from datetime import datetime
 import time
 import wave
+from datetime import datetime
+
+import noisereduce as nr
+import pyaudio
 from flask import Flask
 from flask_sockets import Sockets
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
-from Speech_Recognition import try_transcription
 from scipy.io import wavfile
+
+from Speech_Recognition import try_transcription
 
 app = Flask(__name__)
 sockets = Sockets(app)

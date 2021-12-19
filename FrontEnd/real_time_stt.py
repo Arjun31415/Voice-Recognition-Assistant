@@ -1,17 +1,15 @@
-from asyncio import futures
-import json
-from datetime import datetime
-import base64
 import asyncio
+import base64
+import json
+import logging
+import time
+import wave
+from asyncio import futures
+from datetime import datetime
 from typing import List
+
 import pyaudio
 import websockets
-import wave
-import logging
-import io
-from scipy.io.wavfile import read, write
-import time
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -133,7 +131,7 @@ async def speech_to_text():
             """
             Asynchronous function used for receiving data
             """
-            logger.info(f"start_time: {start_time}")
+            logger.info("start_time: %d", start_time)
             prev_msg = None
             received_msg = None
 
@@ -149,11 +147,9 @@ async def speech_to_text():
                         return prev_msg
                     # print(json.loads(received_msg)['text'])
                 except asyncio.CancelledError as e:
-                    pass
                     return (received_msg if received_msg is not None else prev_msg)
                 except Exception as e:
-                    pass
-                    logger.error(f'Something went wrong.\n{e}')
+                    logger.error('Something went wrong.\n%s', e)
                     break
             logger.info("recording over\n")
             await ws_connection.send(json.dumps(
@@ -165,7 +161,7 @@ async def speech_to_text():
         data_received = None
 
         try:
-            data_sent, data_received = await asyncio.gather(
+            _, data_received = await asyncio.gather(
                 send_data(),
                 asyncio.shield(
                     asyncio.wait_for(
@@ -174,8 +170,8 @@ async def speech_to_text():
                 ),
                 return_exceptions=True
             )
-            logger.info(f"data received: {data_received} ")
-        except futures.TimeoutError as e:
+            logger.info("data received: %s ", {data_received})
+        except futures.TimeoutError:
             await ws_connection.send(json.dumps(
                 {
                     'event': "closed",
@@ -188,7 +184,7 @@ async def speech_to_text():
 
 def main():
     transcript = asyncio.run(speech_to_text())
-    logger.info(f"Final Transcription: {transcript} ")
+    logger.info("Final Transcription: %s", transcript)
 
 
 if __name__ == '__main__':
