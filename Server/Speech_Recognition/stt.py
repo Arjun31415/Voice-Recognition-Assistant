@@ -21,7 +21,7 @@ def try_transcription(filename, rate: int):
     print(framerate)
     sounddata = data[1]
     time = np.arange(0, len(sounddata))/framerate
-    input_audio, _ = librosa.load(file_name, sr=16000)
+    input_audio, _ = librosa.load(filename, sr=16000)
     print(type(input_audio))
     input_values = tokenizer(input_audio, return_tensors="pt").input_values
     logits = model(input_values).logits
@@ -35,22 +35,24 @@ def try_transcription(filename, rate: int):
     return transcription
 
 
-print(getcwd())
-data_dir = pjoin(getcwd(), "")
-if("Server" not in data_dir):
-    data_dir = pjoin(getcwd(), "Server")
+# print(getcwd())
+# data_dir = pjoin(getcwd(), "")
+# if("Server" not in data_dir):
+#     data_dir = pjoin(getcwd(), "Server")
 
-file_name = pjoin(data_dir, 'temp.wav')
-data = wavfile.read(file_name)
+# file_name = pjoin(data_dir, 'temp.wav')
+# data = wavfile.read(file_name)
 
-framerate = data[0]
-print(framerate)
-sounddata = data[1]
-time = np.arange(0, len(sounddata))/framerate
-input_audio, _ = librosa.load(file_name, sr=16000)
-print(type(input_audio))
-input_values = tokenizer(input_audio, return_tensors="pt").input_values
-logits = model(input_values).logits
-predicted_ids = torch.argmax(logits, dim=-1)
-transcription = tokenizer.batch_decode(predicted_ids)[0]
-print(transcription)
+# framerate = data[0]
+# print(framerate)
+# sounddata = data[1]
+# time = np.arange(0, len(sounddata))/framerate
+# input_audio, _ = librosa.load(file_name, sr=16000)
+# print(type(input_audio))
+# input_values = tokenizer(input_audio, return_tensors="pt").input_values
+# logits = model(input_values).logits
+# predicted_ids = torch.argmax(logits, dim=-1)
+# transcription = tokenizer.batch_decode(predicted_ids)[0]
+# print(transcription)
+
+try_transcription("mywav_reduced_noise.wav", 16000)

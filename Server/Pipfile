@@ -26,6 +26,7 @@ six = "*"
 torch = "*"
 transformers = "*"
 pygame = "*"
+noisereduce = "*"
 
 [dev-packages]
 autopep8 = "*"

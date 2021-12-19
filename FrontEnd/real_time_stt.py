@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 import base64
 import asyncio
+from typing import List
 import pyaudio
 import websockets
 import wave
@@ -16,13 +17,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SAMPLE_RATE = 16000
-FRAMES_PER_BUFFER = 3200
+FRAMES_PER_BUFFER = 1600
 CHANNELS = 1
 FORMAT = pyaudio.paInt16
 
 # API_KEY = '<your AssemblyAI Key goes here>'
 # ASSEMBLYAI_ENDPOINT = f'wss://api.assemblyai.com/v2/realtime/ws?sample_rate={SAMPLE_RATE}'
-ASSEMBLYAI_ENDPOINT = "wss://4533-27-5-10-110.ngrok.io/media"
+ASSEMBLYAI_ENDPOINT = "wss://f365-115-97-29-129.ngrok.io/media"
 
 p = pyaudio.PyAudio()
 audio_stream = p.open(
@@ -32,6 +33,9 @@ audio_stream = p.open(
     channels=CHANNELS,
     input=True,
 )
+
+# Array to store the streaming transcript
+transcriptions: List[str] = []
 
 
 def save_audio_to_wav(audio, p, append,  file):
@@ -92,8 +96,10 @@ async def speech_to_text():
             # while True:
 
             start_time = int(time.time())
-            while int(time.time()) - start_time <= 5:
+            # time.sleep(4)
 
+            while int(time.time()) - start_time <= 10:
+                print("Speak Now\n")
                 data = audio_stream.read(FRAMES_PER_BUFFER)
 
                 file = save_audio_to_wav(data, p, append, file)
@@ -138,13 +144,15 @@ async def speech_to_text():
                 try:
                     received_msg = await ws_connection.recv()
                     print(received_msg)
-                    return received_msg
+                    # return received_msg
                     if(received_msg == "Finished"):
                         return prev_msg
                     # print(json.loads(received_msg)['text'])
                 except asyncio.CancelledError as e:
+                    pass
                     return (received_msg if received_msg is not None else prev_msg)
                 except Exception as e:
+                    pass
                     logger.error(f'Something went wrong.\n{e}')
                     break
             logger.info("recording over\n")

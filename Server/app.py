@@ -1,5 +1,7 @@
 import pyaudio
 import base64
+import noisereduce as nr
+
 import json
 import logging
 import asyncio
@@ -11,6 +13,8 @@ from flask_sockets import Sockets
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 from Speech_Recognition import try_transcription
+from scipy.io import wavfile
+
 app = Flask(__name__)
 sockets = Sockets(app)
 STARTED_TIME: int
@@ -24,6 +28,7 @@ SAMPLE_SIZE: int
 
 
 def transcription(filename):
+    app.logger.info(f"elapsed time: {(int(time.time())-STARTED_TIME)} ")
     if((int(time.time())-STARTED_TIME) % 5 == 0):
         text = try_transcription(filename, SAMPLE_RATE)
         app.logger.info("TRANSCRIPTION: %s\n" % text)
@@ -45,6 +50,9 @@ def save_audio_to_wav(audio_stream, file):
             except KeyboardInterrupt:
                 f.close()
         file = filename
+        rate, data = wavfile.read(filename)
+        reduced_noise = nr.reduce_noise(y=data, sr=rate)
+        wavfile.write("mywav_reduced_noise.wav", rate, reduced_noise)
         return filename
     except KeyboardInterrupt:
         app.logger.info("Interrupted by user\n\n\n")
@@ -112,7 +120,7 @@ def echo(ws):
             chunk = base64.b64decode(payload)
             audio_stream.append(chunk)
             save_audio_to_wav(audio_stream, "temp.wav")
-            transcript = transcription("temp.wav")
+            transcript = transcription("mywav_reduced_noise.wav")
             if transcript is not None:
                 app.logger.info(f"Transcript: {transcript}")
                 app.logger.info(f"Sending Transcription\n")
@@ -122,7 +130,7 @@ def echo(ws):
         if data['event'] == "closed":
             app.logger.info("Closed Message received: {}".format(message))
             break
-        transcript = transcription("temp.wav")
+        transcript = transcription("mywav_reduced_noise.wav")
         if transcript is not None:
             app.logger.info(f"Transcript: {transcript}")
             app.logger.info(f"Sending Transcription\n")
