@@ -4,7 +4,6 @@ import json
 import logging
 import time
 import wave
-from datetime import datetime
 
 import noisereduce as nr
 import pyaudio
@@ -30,24 +29,24 @@ SAMPLE_SIZE: int
 
 def transcription(filename):
     app.logger.info(f"elapsed time: {(int(time.time())-STARTED_TIME)} ")
-    if((int(time.time())-STARTED_TIME) % 5 == 0):
+    if(int(time.time())-STARTED_TIME) % 5 == 0:
         text = try_transcription(filename, SAMPLE_RATE)
         app.logger.info("TRANSCRIPTION: %s\n" % text)
         return text
     return None
 
 
-def save_audio_to_wav(audio_stream, file):
+def save_audio_to_wav(audio, file):
     # frames = [audio]
     try:
         filename = file
 
-        with wave.open(filename, "wb") as f:
+        with wave.open(filename, mode="w") as f:
             try:
                 f.setnchannels(CHANNELS)
                 f.setsampwidth(SAMPLE_SIZE)
                 f.setframerate(SAMPLE_RATE)
-                f.writeframes(b''.join(audio_stream))
+                f.writeframes(b''.join(audio))
             except KeyboardInterrupt:
                 f.close()
         file = filename
@@ -57,6 +56,7 @@ def save_audio_to_wav(audio_stream, file):
         return filename
     except KeyboardInterrupt:
         app.logger.info("Interrupted by user\n\n\n")
+        return None
 
 
 @sockets.route('/media')
@@ -76,36 +76,26 @@ def echo(ws):
             # TODO: instead of continue do some transcript
             app.logger.info("No message received...")
             continue
-            # if not message_count:
-            #     continue
-            # else:
-            #     if transcript is not None:
-            #         app.logger.info(f"Transcript: {transcript}")
-            #         app.logger.info(f"Sending Transcription\n")
-            #         # ws.send({"transcription": transcript})
-            #     try:
-            #         ws.send(transcript)
-            #     except Exception:
-            #         continue
+
         app.logger.info(f"Message received: {message[:10]}")
 
         # Messages are a JSON encoded string
         data = json.loads(message)
-        app.logger.info(f"data received")
+        app.logger.info("data received")
 
         # Using the event type you can determine what type of message you are receiving
         if data['event'] == "connected":
-            app.logger.info("Connected Message received: {}".format(message))
+            app.logger.info("Connected Message received: %s", message)
         if data['event'] == "start":
-            app.logger.info("Start Message received: {}".format(message))
+            app.logger.info("Start Message received: %s", message)
         if data['event'] == "media":
 
             if not has_seen_media:
-                app.logger.info("Media message: {}".format(message))
+                app.logger.info("Media message: %s", message)
                 payload = data['media']['payload']
-                app.logger.info("Payload is: {}".format(payload))
+                app.logger.info("Payload is: %s", payload)
                 chunk = base64.b64decode(payload)
-                app.logger.info("That's {} bytes".format(len(chunk)))
+                app.logger.info("That's %d bytes", len(chunk))
                 app.logger.info(
                     "Additional media messages from WebSocket are being suppressed....")
                 has_seen_media = True
@@ -123,18 +113,17 @@ def echo(ws):
             save_audio_to_wav(audio_stream, "temp.wav")
             transcript = transcription("mywav_reduced_noise.wav")
             if transcript is not None:
-                app.logger.info(f"Transcript: {transcript}")
-                app.logger.info(f"Sending Transcription\n")
-                # ws.send({"transcription": transcript})
+                app.logger.info("Transcript: %s", transcript)
+                app.logger.info("Sending Transcription\n")
                 ws.send(transcript)
 
         if data['event'] == "closed":
-            app.logger.info("Closed Message received: {}".format(message))
+            app.logger.info("Closed Message received: %s", message)
             break
         transcript = transcription("mywav_reduced_noise.wav")
         if transcript is not None:
-            app.logger.info(f"Transcript: {transcript}")
-            app.logger.info(f"Sending Transcription\n")
+            app.logger.info("Transcript: %s", transcript)
+            app.logger.info("Sending Transcription\n")
             # ws.send({"transcription": transcript})
             ws.send(transcript)
         message_count += 1

@@ -1,9 +1,7 @@
 import torch
-import soundfile as sf
 import librosa
 import numpy as np
 from scipy.io import wavfile
-from IPython.display import Audio
 from os.path import dirname, join as pjoin
 from os import getcwd
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Tokenizer, Wav2Vec2CTCTokenizer, Wav2Vec2Processor
@@ -20,7 +18,7 @@ def try_transcription(filename, rate: int):
     framerate = data[0]
     print(framerate)
     sounddata = data[1]
-    time = np.arange(0, len(sounddata))/framerate
+    # time = np.arange(0, len(sounddata))/framerate
     input_audio, _ = librosa.load(filename, sr=16000)
     print(type(input_audio))
     input_values = tokenizer(input_audio, return_tensors="pt").input_values
