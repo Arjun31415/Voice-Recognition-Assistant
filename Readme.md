@@ -41,4 +41,4 @@ Now activate the virtual environment in the preferred manner and run
 pipenv install
 ```
 
-This will install all teh dependencies required.
+This will install all the dependencies required.
